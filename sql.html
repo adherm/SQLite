@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="solarized-dark.css">
+        <script src="highlight.pack.js"></script>
+        <script>hljs.initHighlightingOnLoad();</script>
+        <title>MSAccess2SQLite</title>
+    </head>
+    <body>
+        <img src="title.jpg" align="middle">
+
+        <p>Pliki baz danych Microsoft Access mają rozszerzenia:
+        <ul>
+            <li><b>ACCDB</b> &larr; nowy format, stosowany w wersjach MS Access 2007 i nowszych</li>
+            <li><b>MDB</b> &larr; stary format, stosowany w wersjach starszych niż MS Access 2007</li>
+        </ul></p>
+        <p>Pliki baz danych SQLite mają format swobodny (nie ma on znaczenia):
+        <ul>
+            <li><b>SQLITE</b> &larr; popularne rozszerzenie SQLite</li>
+        </ul></p>
+        Zasadniczy mechanizm (tzw. silnik) relacyjnego systemu zarządzania bazą danych <a href="https://pl.wikipedia.org/wiki/SQLite">SQLite</a>
+        nie ma architektury typu klient-serwer w tym obsługi kont użytkowników.<br>
+        <a href="https://www.tutorialspoint.com/sqlite/">SQLite można zarządzać tekstowo z poziomu konsoli</a>
+        Dzięki prostej budowie SQLite jest bardzo wydajne i często wykorzystywane w <a href="https://pl.wikipedia.org/wiki/System_wbudowany">systemach wbudowanych</a>.<br><br>
+        Serwis <a href="https://www.rebasedata.com">RebaseData</a> umożliwia konwersje online baz danych pomiędzy różnymi formatami bez rejestracji do 50GB.<br>
+        Konwersji pliku baza.accdb do formatu sqlite można dokonać z linii komend w powłoce shellowej
+        (np. <a href="http://www.lokonopnicka.pl/pliki/pomoce/linux/kursbasha/main.html">GNU Bash</a>)
+        za pomocą narzędzia do transferu danych <a href="https://curl.haxx.se">cURL</a>:
+        <pre><code class="shell">$ curl -F files[]=@baza.accdb 'https://www.rebasedata.com/api/v1/convert?outputFormat=sqlite&errorResponse=zip' -o baza.zip</code></pre>
+        Opcja -F przekazana do polecenia curl emuluje wypełnienie formularza a następnie wciśnięcie przycisku submit.<br>
+        Tablica files[] tutaj przechowuje tylko nazwę jednego pliku, który jest przesyłany pod wskazany adres
+        <a href="https://pl.wikipedia.org/wiki/Uniform_Resource_Identifier">URI</a> z zapytaniem metodą HTTP GET.
+        Zapytanie GET wskazuje że plik wyjściowy ma być w formacie SQLITE i wraz z ewentualnym raportem błędów przy nieudanej konwersji mają być przed odesłaniem do
+        klienta skompresowane do formatu ZIP. Opcja -o polecenia curl wskazuje że skonwertowany plik lub raport błędów zostaną zachowane pod nazwą baza.zip.<br>
+        Zdekompresujmy otrzymany plik:
+        <pre><code class="shell">$ unzip data.zip</code></pre>
+        Po dekompresji utworzony zostanie plik data.sqlite. <br> Zmieńmy jego nazwę na baza.sqlite komendą:
+        <pre><code class="shell">$ mv data.sqlite baza.sqlite</code></pre>
+        Sprawdzamy czy rzeczywiście otrzymaliśmy plik typu sqlite:
+        <pre><code class="shell">$ file baza.sqlite
+baza.sqlite: SQLite 3.x database, last written using SQLite version 3016002</code></pre><br>
+        Operacje bazodanowe na plikach typu SQLITE będziemy przeprowadzać w programie <a href="https://sqlitestudio.pl">SQLiteStudio</a>.
+        Jest to wieloplatformowy graficzny menadżer systemu zarządzania bazą danych SQLite. Są cztery rodzaje instalacji:
+        <ol>
+            <li><b>Portable</b> &larr; jako pojedynczy wykonywalny plik programu bez potrzeby konfiguracji.</li>
+            <li><b>Installer</b> &larr; pełna instalacja z dodatkami.</li>
+            <li><b>Source</b> &larr; instalacja ze źródeł.</li>
+            <li>Za pomocą <a href="https://pl.wikipedia.org/wiki/System_zarządzania_pakietami">systemu zarządzania pakietami</a>,
+                który automatycznie aktualizuje aplikację razem z jej komponentami.</li>
+        </ol>
+        Ja preferuję ostatni sposób instalacji, np. w systemie macOS można posłużyć się menadżerem <a href="https://brew.sh">homebrew</a> wydając w konsoli komendę:
+        <pre><code class="shell">$ brew cask install sqlitestudio</code></pre><br>
+        Uruchommy SQLiteStudio i zaimportujmy bazę danych <em>baza.sqlite</em><br><br>
+        <img src="sqls1.png" align="middle"><br><br>
+        <img src="sqls2.png" align="left"><img src="sqls3.png"><br><br>
+        <img src="sqls4.png" align="middle"><br><br>
+
+        <h1>Pozostałe zapytania do bazy danych <em>baza.sqlite</em> z listy zadań:</h1>
+        <ol start="2">
+            <li>
+                Wyświetl wszystkie rekordy z tabeli Produkty (wszystkie atrybuty) posortowane malejąco według ceny jednostkowej.
+                <pre><code class="sql">SELECT * FROM Produkty ORDER BY CAST(CenaJednostkowa AS DECIMAL) DESC;</code></pre>
+            </li>
+            <li>
+                Wyświetl ID zamówień, daty zamówień, miasta i kraje odbiorców z tabeli Zamówienia.
+                <pre><code class="sql">SELECT IDzamówienia,DataZamówienia,MiastoOdbiorcy||','||KrajOdbiorcy AS MiastoKrajObdbiorcy FROM Zamówienia;</code></pre>
+            </li>
+            <li>
+                Wyświetl wszystkie produkty, których stan magazynowy jest mniejszy niż 30.
+                <pre><code class="sql">SELECT * FROM Produkty WHERE CAST(StanMagazynu AS INT)<=30;</code></pre>
+            </li>
+            <li>
+                Wyświetl nazwy, adresy i miasta dostawców ze Szwecji, posortowane według nazw firm.
+                <pre><code class="sql">SELECT NazwaFirmy,Adres,Miasto FROM Dostawcy WHERE Kraj='Szwecja' ORDER BY NazwaFirmy;</code></pre>
+            </li>
+            <li>
+                Wyświetl nazwy, adresy i miasta dostawców spoza Szwecji, posortowane według nazw firm.
+                <pre><code class="sql">SELECT NazwaFirmy,Adres,Miasto FROM Dostawcy WHERE Kraj!='Szwecja' ORDER BY NazwaFirmy;</code></pre>
+            </li>
+            <li>
+                Wyświetl wszystkie zamówienia, które zostały złożone po 1997 roku.
+                <pre><code class="sql">SELECT * FROM Zamówienia WHERE date(DataZamówienia)>='1998';</code></pre>
+            </li>
+            <li>
+                Wyświetl wszystkie zamówienia, które zostały złożone po 1997 roku i wysłane do Londynu.
+                <pre><code class="sql">SELECT * FROM Zamówienia WHERE date(DataZamówienia)>='1998' AND MiastoOdbiorcy='Londyn';</code></pre>
+            </li>
+            <li>
+                Wyświetl nazwy firm, adresy i miasta klientów pochodzących z Niemiec i Francji.
+                <pre><code class="sql">SELECT NazwaFirmy,Adres,Miasto FROM Klienci WHERE Kraj IN ('Niemcy','Francja');</code></pre>
+            </li>
+            <li>
+                Wyświetl wszystkie pozycje zamówień (tabela „Opisy zamówień”) na których cena jednostkowa była większa od 200 lub ilość zamawianego towaru przekraczała 100.
+                <pre><code class="sql">SELECT * FROM 'Opisy zamówień' WHERE CAST(CenaJednostkowa AS DECIMAL)>200 OR CAST(Ilość AS INT)>100;</code></pre>
+            </li>
+            <li>
+                Wyznacz wartości poszczególnych produktów w magazynie (wyświetl wraz z nazwami produktów).
+                <pre><code class="sql">SELECT NazwaProduktu,round(CenaJednostkowa*StanMagazynu,2) AS WartośćMagazynowa FROM Produkty;</code></pre>
+            </li>
+        </ol>
+        <br>
+        <h1>Ćwiczenie 2 – utwórz kwerendy agregujące (oparte na pojedynczych tabelach):</h1>
+        <ol>
+            <li>
+                Wyświetl sumę kosztów frachtu ze wszystkich zamówień.
+                <pre><code class="sql">SELECT round(sum(Fracht),2) AS Sumafrachtów FROM Zamówienia;</code></pre>
+            </li>
+            <li>
+                Wyświetl sumę kosztów frachtu według krajów odbiorców.
+                <pre><code class="sql">SELECT KrajOdbiorcy,round(sum(Fracht),2) AS Sumafrachtów FROM Zamówienia GROUP BY KrajOdbiorcy;</code></pre>
+            </li>
+            <li>
+                Zlicz ilość rekordów znajdujących się w tablicy Produkty.
+                <pre><code class="sql">SELECT count(*) AS LiczbaProduktów FROM Produkty;</code></pre>
+            </li>
+            <li>
+                Wyświetl liczby klientów z poszczególnych krajów.
+                <pre><code class="sql">SELECT Kraj,count(*) AS LiczbaKlientów FROM Klienci GROUP BY Kraj;</code></pre>
+            </li>
+        </ol>
+        <br>
+        <h1>Ćwiczenie 3 – utwórz kwerendy oparte na złączeniach tabel:</h1>
+        <ol>
+            <li>
+                Wyświetl nazwy miast, posortowane alfabetycznie, wraz z nazwami regionów (tabele: Miasta, Regiony)
+                <pre><code class="sql">SELECT Miasta.Nazwa_miasto,Regiony.Nazwa_region FROM Miasta,Regiony ORDER BY 1 ASC;</code></pre>
+            </li>
+            <li>
+                Wyświetl nazwiska pracowników wraz z nazwami miast, będących pod ich opieką.
+                <pre><code class="sql">SELECT Pracownicy.Nazwisko,Miasta.Nazwa_miasto FROM Pracownicy,Miasta;</code></pre>
+            </li>
+            <li>
+                Jak wyżej (2), ale tylko dla pracowników o numerach 1 i 2.
+                <pre><code class="sql">SELECT Pracownicy.Nazwisko,Miasta.Nazwa_miasto FROM Pracownicy,Miasta WHERE Pracownicy.IDpracownika IN ('1','2');
+SELECT Pracownicy.Nazwisko,Miasta.Nazwa_miasto FROM Pracownicy,Miasta WHERE Pracownicy.IDpracownika*1 IN (1,2);
+SELECT Pracownicy.Nazwisko,Miasta.Nazwa_miasto FROM Pracownicy,Miasta WHERE CAST(Pracownicy.IDpracownika AS INT) IN (1,2);</code></pre>
+            </li>
+            <li>
+                Wyświetl ID zamówień połączone z danymi spedytora.
+                <pre><code class="sql">SELECT Zamówienia.IDzamówienia,Spedytorzy.* FROM Zamówienia,Spedytorzy;</code></pre>
+            </li>
+            <li>
+                Wyświetl nazwy kategorii produktów wraz z sumami wartości magazynowymi (wartość=stan_magazynu*cena_jednostkowa) [UWAGA – zastosuj agregację!].
+                <pre><code class="sql"></code></pre>
+            </li>
+            <li>
+                Utwórz zestawienie, które dla każdej pozycji z tabeli „Opisy zamówień” przedstawiać
+                będzie wartość sprzedaży, uwzględniającą przyznany rabat. Przy każdej pozycji powinna
+                znaleźć się dodatkowo nazwa sprzedanego produktu.
+                <pre><code class="sql"></code></pre>
+            </li>
+            <li>
+                Wyświetl dzienne wartości sprzedaży według dat zamówień.
+                <pre><code class="sql"></code></pre>
+            </li>
+            <li>
+                Utwórz ranking pracowników według wartości dokonanej przez nich sprzedaży (uwzględniającej rabaty) [UWAGA – zastosuj agregację!].
+                <pre><code class="sql"></code></pre>
+            </li>
+        </ol>
+        <br>
+        <h1>Ćwiczenie 4 – utwórz raporty:</h1>
+        <ol>
+            <li>
+                Raport stanów magazynowych: Nazwa produktu, cena jednostkowa i stan magazynu.
+                <pre><code class="sql"></code></pre>
+            </li>
+            <li>
+                Raport stanów magazynowych (pola jak w punkcie 1), pogrupowane według dostawców (z wyszczególnieniem nazwy firmy).
+                <pre><code class="sql"></code></pre>
+            </li>
+        </ol>
+        <hr>
+        <h1>Microsoft Access – kwerendy</h1>
+
+        Stworzyć kwerendę która zwróci nazwę, miasto i województwo odbiorców.
+        Stworzyć kwerendę która zwróci nazwę, województwo i miasto odbiorców. Dane proszę posortować rosnąco wg województwa oraz rosnąco według miasta.
+        Zbudować kwerendę, która będzie zwracać NIP i nazwę odbiorców którzy zlokalizowani są w województwie mazowieckim.
+        Zbudować kwerendę, która będzie zwracać NIP, nazwę i województwo odbiorców którzy zlokalizowani są w województwie mazowieckim i łódzkim.
+        Zbudować kwerendę, która będzie zwracać NIP, nazwę i województwo odbiorców którzy zlokalizowani są w innym województwie niż mazowieckie i łódzkie. Dane proszę posortować rosnąco według województwa.
+        Zbudować kwerendę, która będzie zwracać NIP, nazwę i województwo odbiorców którzy zlokalizowani są w województwie mazowieckim ale nie w Warszawie.
+        Zbudować kwerendę, która będzie zwracać NIP, nazwę i województwo odbiorców którzy zlokalizowani są w województwie mazowieckim ale nie w Warszawie oraz tych odbiorców którzy są z województwa łódzkiego.
+        Zbudować kwerendę która zwróci nazwy odbiorców zaczynające się na literę D.
+        Zbudować kwerendę która zwróci nazwy odbiorców zaczynające się na litery od A do D. Wyniki posortuj rosnąco po nazwie.
+        Zbuduj kwerendę która zwróci odbiorców których nazwa nie zaczyna się od liter A do D. Wyniki posortuj rosnąco po nazwie.
+        Zbuduj kwerendę która zwróci odbiorców którzy w nazwie mają Lech. Wyniki posortuj malejąco.
+        Zbuduj kwerendę która zwróci nazwę odbiorcy, jego miejscowość, oraz w nawiasie województwo. Wyniki posortuj po województwie. Kolumna zwracająca miejscowość i województwo niech ma nazwę „miejscowosc”.
+        Zbuduj kwerendę która zwróci nazwę odbiorcy, kod pocztowy + poczta.
+        Stwórz kwerendę, która będzie zwracać liczbę odbiorców. Zmień nazwę kolumny na „Liczba_Odbiorców”
+        Stwórz kwerendę, która zwróci liczbę odbiorców z poszczególnych województw. Niech najpierw znajdują się województwa najbardziej zasobne w odbiorców.
+        Stwórz kwerendę, która będzie zwracać liczbę odbiorców z województwa mazowieckiego. Zmień nazwę kolumny na „Liczba_Odbiorców_z_mazowieckiego”
+        Stwórz kwerendę, która będzie zwracać liczbę odbiorców według województw i miast. Zmień nazwę kolumny obliczeniowej na „Liczba_Odbiorców”. Wyniki posortuj rosnąco według województw i miast.
+        Stwórz kwerendę która pozwoli stworzyć etykiety na koperty dla odbiorców którzy nie mają numeru telefonu.
+        Stwórz listę odbiorców (nip, nazwa, telefon) do których można zatelefonować w sprawie oferty handlowej. Wyniki posortuj rosnąco według nazwy odbiorcy.
+        Stwórz kwerendę parametryczną zwracającą NIP, nazwę, telefon odbiorców posiadających telefon. Parametr ma umożliwić określenie z jakiego województwa mają być odbiorcy. Wyniki posortuj rosnąco według nazwy odbiorcy.
+        Stwórz kwerendę która wyświetli wszystkie dane odbiorców których nazwa zaczyna się od określonego ciągu znaków (parametr). Wyniki posortuj rosnąco według nazwy odbiorcy.
+        Stwórz kwerendę która zwróci liczbę towarów, ich minimalną , maksymalną i średnią cenę sugerowaną. Zmień nazwy kolumn obliczeniowych odpowiednio na: „Ilość towarów”, „Minimalna sugerowana cena”, Maksymalna sugerowana cena”, „Średnia sugerowana cena”.
+        Zbuduj kwerendę która zwróci datę sprzedaży, numer faktury, nip i nazwę odbiorcy którzy dokonali zakupów w pierwszym kwartale 1998 roku. Wyniki posortuj rosnąco po dacie sprzedaży.
+        Zbuduj kwerendę która będzie zwracać NIP datę sprzedaży, numer faktury, nip i nazwę odbiorcy. Kwerenda ma zwracać dane z wyznaczonego okresu czasu. Datę od i datę do ma być określana przez parametr.
+        Stwórz kwerendę która zwróci nazwę odbiorcy, jego nip i ilość wystawionych mu faktur. Kolumnę wyliczeniową nazwij „Liczba faktur”. Wyniki posortuj malejąco według liczby wystawionych faktur.
+        Stwórz kwerendę która zwróci nazwę odbiorcy, jego nip oraz towary (ich nazwy) jakie zostały mu sprzedane. Listę posortuj według nazw odbiorców.
+        Stwórz kwerendę która pozwoli odpowiedz na pytanie: jak ilościowo sprzedawały się poszczególne towary przez cały okres działalności firmy. Kolumna wyliczeniowa niech nosi nazwę „Sprzedaż ilościowa”. Niech na górze zestawienia znajdują się towary sprzedawane w największej ilości.
+        Stwórz kwerendę która zwróci informacje o wartościach netto wystawionych faktur (nr faktury, data sprzedaży).
+
+    </body>
+</html>
